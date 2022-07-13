@@ -8,7 +8,6 @@ servo = AngularServo(pin, initial_angle=0, min_angle=-15, max_angle=15)
 def setup():
     print("setup")
     servo.angle = 0
-    # servo.mid()
     print(servo.angle)
 
 

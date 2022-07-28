@@ -18,7 +18,7 @@ def handle_command(command: dict):
 
 
 async def main():
-    async with websockets.connect(f'ws://{URL}:{PORT}') as websocket:
+    async with websockets.connect(f'ws://{URL}:{PORT}/racer') as websocket:
         await websocket.send("Racer connected")
         while True:
             message = await websocket.recv()

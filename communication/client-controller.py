@@ -60,7 +60,7 @@ async def start_controlling():
 
     is_running = True
 
-    async with websockets.connect(f'ws://{URL}:{PORT}') as websocket:
+    async with websockets.connect(f'ws://{URL}:{PORT}/controller') as websocket:
         await websocket.send("Controller connected")
         while is_running:
             if 'q' in keys_pressed:

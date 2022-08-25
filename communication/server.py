@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 import websockets
 from websockets import WebSocketServerProtocol
 import asyncio
@@ -6,25 +8,51 @@ PORT = 7890
 URL = "localhost"
 
 
+def is_controller(websocket: WebSocketServerProtocol) -> bool:
+    return websocket.path == "/controller"
+
+
+def is_racer(websocket: WebSocketServerProtocol) -> bool:
+    return websocket.path == "/racer"
+
+
 class Server:
-    racers = dict()
+    racers = dict()  # <racer.ID, associated Racer>
     unassigned_racer_ids = set()
 
-    controllers = dict()
+    controllers = dict()  # <controller.ID, associated Controller>
     unassigned_controller_ids = set()
 
     relationships = dict()  # <controller.ID, racer.ID>
 
     async def websocket_handler(self, websocket: WebSocketServerProtocol) -> None:
         await self.__register(websocket)
+        await websocket.send("You are connected to the server")
         try:
             await self.__distribute(websocket)
-        finally:
+        except KeyError:
             pass
-        #     await self.__unregister(websocket)
+        finally:
+            await self.__unregister(websocket)
+
+    async def __unregister(self, websocket: WebSocketServerProtocol) -> None:
+        if is_controller(websocket):
+            print("disconnect Controller")
+            racer_id = self.relationships.pop(websocket.id, None)
+            if racer_id is not None:
+                self.unassigned_racer_ids.add(racer_id)
+            self.controllers.pop(websocket.id, None)
+        elif is_racer(websocket):
+            print("disconnect Racer")
+            controller_id = self.pop_relationship_with_racer_id(websocket.id)
+            if controller_id is not None:
+                self.unassigned_controller_ids.add(controller_id)
+            self.racers.pop(websocket.id, None)
+
+        print(f'controller: {len(self.controllers.keys())} | racer: {len(self.racers.keys())}')
 
     async def __register(self, websocket: WebSocketServerProtocol) -> None:
-        if self.is_controller(websocket):
+        if is_controller(websocket):
             self.controllers[websocket.id] = websocket
             print(f'Controller: {websocket.id} connected')
             if len(self.unassigned_racer_ids) == 0:
@@ -33,8 +61,8 @@ class Server:
                 new_racer_id = self.unassigned_racer_ids.pop()
                 self.relationships[websocket.id] = new_racer_id
                 await self.__send_match_found_to(websocket.id, new_racer_id)
-            # connect to unassigned racer
-        elif self.is_racer(websocket):
+
+        elif is_racer(websocket):
             self.racers[websocket.id] = websocket
             print(f'Racer: {websocket.id} connected')
             # connect to unassigned controller
@@ -53,7 +81,7 @@ class Server:
 
     async def __distribute(self, websocket: WebSocketServerProtocol) -> None:
         async for message in websocket:
-            if self.is_controller(websocket):
+            if is_controller(websocket):
                 if websocket.id in self.relationships.keys():
                     racer_id = self.relationships[websocket.id]
                     racer = self.racers[racer_id]
@@ -65,16 +93,20 @@ class Server:
         racer = self.racers[racer_id]
         await racer.send(f'paired to controller: {controller_id}')
 
-    def is_controller(self, websocket: WebSocketServerProtocol) -> bool:
-        return websocket.path == "/controller"
-
-    def is_racer(self, websocket: WebSocketServerProtocol) -> bool:
-        return websocket.path == "/racer"
+    def pop_relationship_with_racer_id(self, racer_id: str) -> Optional[str]:
+        for key in self.relationships.keys():
+            found_racer_id = self.relationships[key]
+            if found_racer_id == racer_id:
+                del self.relationships[key]
+                return key
+        return None
 
 
 if __name__ == '__main__':
+    print("Initialize Server")
     server = Server()
     start_server = websockets.serve(server.websocket_handler, URL, PORT)
+    print(f'Start with {len(start_server.ws_server.websockets)} active Websockets')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start_server)
     loop.run_forever()

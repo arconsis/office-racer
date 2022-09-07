@@ -47,7 +47,7 @@ def update():
     stop()
     print("stop")
 
-if __name__ == '__main__':
-    setup()
-    while True:
-       update()
+# if __name__ == '__main__':
+#     setup()
+#     while True:
+#        update()

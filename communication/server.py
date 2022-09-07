@@ -5,7 +5,7 @@ from websockets import WebSocketServerProtocol
 import asyncio
 
 PORT = 7890
-URL = "localhost"
+URL = "0.0.0.0"
 
 
 def is_controller(websocket: WebSocketServerProtocol) -> bool:

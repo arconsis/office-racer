@@ -7,7 +7,7 @@ servo = AngularServo(pin, initial_angle=0, min_angle=-15, max_angle=15)
 
 def setup():
     print("setup")
-    servo.angle = 0
+    servo.angle = 0    
     print(servo.angle)
 
 
@@ -35,8 +35,8 @@ def steer_right():
 def center():
     servo.angle = 0
 
-if __name__ == '__main__':
-    setup()
-    while True:
-       update()
+# if __name__ == '__main__':
+#     setup()
+#     while True:
+#        update()
 

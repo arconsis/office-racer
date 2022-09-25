@@ -24,10 +24,12 @@ async def start_controlling():
     async with websockets.connect(f'ws://{URL}:{PORT}/controller') as websocket:
         await websocket.send("Autonomous Controller connected")
         while True:
-            time_to_sleep = random.randint(2, 3)
+            time_to_sleep = random.randint(1, 2)
             await sleep(time_to_sleep)
             command = generate_command()
+            print(command)
             await websocket.send(json.dumps(command))
+
 
 
 asyncio.run(start_controlling())

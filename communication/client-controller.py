@@ -11,16 +11,24 @@ keys_pressed = set()
 
 def on_press_key(key):
     try:
-        keys_pressed.add(key.char)
-    except:
-        print(f'Could not add key: {key.char}')
+        command = key.char
+        keys_pressed.add(command)
+    except ValueError:
+        pass
+    except AttributeError:
+        pass
+    except KeyError:
+        pass
 
 
 def on_release_key(key):
     try:
-        keys_pressed.remove(key.char)
-    except:
-        print(f'Could not remove key: {key.char}')
+        command = key.char
+        keys_pressed.remove(command)
+    except Exception:
+        pass
+    except LookupError:
+        pass
 
 
 def get_command_from_pressed_keys() -> dict:
@@ -67,5 +75,6 @@ async def start_controlling():
                 last_command = command
                 await websocket.send(json.dumps(last_command))
 
+    start_controlling()
 
 asyncio.run(start_controlling())

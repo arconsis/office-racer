@@ -1,11 +1,13 @@
 import asyncio
 import json
+from json import JSONDecodeError
+
 import websockets
 
 from racer.racer import Racer
 
 PORT = 7890
-URL = "192.168.2.222"
+URL = "moritzs-m1pro.local"
 
 
 def handle_command(command: dict, racer: Racer):
@@ -33,18 +35,40 @@ def handle_command(command: dict, racer: Racer):
 
 async def main():
     racer_hardware = Racer()
-    async with websockets.connect(f'ws://{URL}:{PORT}/racer') as websocket:
-        await websocket.send("Racer connected")
-        while True:
-            try:
-                message = await websocket.recv()
-                command = json.loads(message)
-                handle_command(command, racer_hardware)
-            except:
-                racer_hardware.stop()
-                pass
+    while True:
+        try:
+            await connect_and_listen(racer_hardware)
+        except RuntimeError as e:
+            racer_hardware.stop()
+            print(f'BREAK: {e}')
+        except BaseException as e:
+            racer_hardware.stop()
+            print(f'BREAK: {e}')
 
-    await asyncio.Future()  # run forever
+
+async def connect_and_listen(racer_hardware):
+    try:
+        async with websockets.connect(f'ws://{URL}:{PORT}/racer') as websocket:
+            await websocket.send("Racer connected")
+            while True:
+                message = await websocket.recv()
+                await handle_incoming_message(message, racer_hardware)
+    except ConnectionError as e:
+        print(f'{message}: {e}')
+        racer_hardware.stop()
+        await asyncio.sleep(1)
+
+
+async def handle_incoming_message(message, racer_hardware):
+    try:
+        command = json.loads(message)
+        handle_command(command, racer_hardware)
+    except JSONDecodeError as e:
+        print(f'{message}: {e}')
+        pass
+    except BaseException as e:
+        print(f'{message}: {e}')
+        pass
 
 
 asyncio.run(main())

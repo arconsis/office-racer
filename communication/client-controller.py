@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import websockets
 import asyncio
 import json
@@ -66,6 +68,7 @@ async def start_controlling():
 
     async with websockets.connect(f'ws://{URL}:{PORT}/controller') as websocket:
         await websocket.send("Controller connected")
+        last_ping = datetime.now()
         while is_running:
             if 'q' in keys_pressed:
                 is_running = False
@@ -74,6 +77,14 @@ async def start_controlling():
             if command != last_command:
                 last_command = command
                 await websocket.send(json.dumps(last_command))
+
+            difference = datetime.now() - last_ping
+            difference_in_seconds = difference.seconds
+            # print(f'Wating for {difference_in_seconds} Seconds of 10')
+            if difference_in_seconds > 10:
+                print('sending ... PING')
+                last_ping = datetime.now()
+                await websocket.ping()
 
     start_controlling()
 

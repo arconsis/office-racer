@@ -1,6 +1,7 @@
 import asyncio
 import json
 from json import JSONDecodeError
+from datetime import datetime
 
 import websockets
 
@@ -50,9 +51,17 @@ async def connect_and_listen(racer_hardware):
     try:
         async with websockets.connect(f'ws://{URL}:{PORT}/racer') as websocket:
             await websocket.send("Racer connected")
+            last_ping = datetime.now()
             while True:
                 message = await websocket.recv()
                 await handle_incoming_message(message, racer_hardware)
+
+                difference = datetime.now() - last_ping
+                difference_in_seconds = difference.seconds
+
+                if difference_in_seconds > 10:
+                    last_ping = datetime.now()
+                    await websocket.ping()
     except ConnectionError as e:
         print(f'{message}: {e}')
         racer_hardware.stop()
